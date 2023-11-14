@@ -1,0 +1,75 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // Change the HEX address
+#include <Servo.h>
+
+Servo myservo1;
+
+int IR1 = 2;
+int IR2 = 4;
+
+int Slot = 4; // Enter the total number of parking slots
+
+int flag1 = 0;
+int flag2 = 0;
+
+void setup() {
+  lcd.init();
+  lcd.backlight();
+  pinMode(IR1, INPUT);
+  pinMode(IR2, INPUT);
+
+  myservo1.attach(3);
+  myservo1.write(100);
+
+  lcd.setCursor(0, 0);
+  lcd.print("     ARDUINO    ");
+  lcd.setCursor(0, 1);
+  lcd.print(" PARKING SYSTEM ");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  // Car entering the parking lot
+  if (digitalRead(IR1) == LOW && flag1 == 0) {
+    if (Slot > 0) {
+      flag1 = 1;
+      if (flag2 == 0) {
+        myservo1.write(0);  // Open the gate (servo motor)
+        Slot = Slot - 1;    // Decrement available parking slots
+      }
+    } else {
+      // Display parking full message on LCD
+      lcd.setCursor(0, 0);
+      lcd.print("    SORRY :(    ");
+      lcd.setCursor(0, 1);
+      lcd.print("  Parking Full  ");
+      delay(3000);
+      lcd.clear();
+    }
+  }
+
+  // Car leaving the parking lot
+  if (digitalRead(IR2) == LOW && flag2 == 0) {
+    flag2 = 1;
+    if (flag1 == 0) {
+      myservo1.write(0);  // Open the gate (servo motor)
+      Slot = Slot + 1;    // Increment available parking slots
+    }
+  }
+
+  // Close the gate after a car has entered and left
+  if (flag1 == 1 && flag2 == 1) {
+    delay(1000);
+    myservo1.write(100);  // Close the gate (servo motor)
+    flag1 = 0, flag2 = 0;  // Reset flags
+  }
+
+  // Display welcome message and the number of available parking slots
+  lcd.setCursor(0, 0);
+  lcd.print("    WELCOME!    ");
+  lcd.setCursor(0, 1);
+  lcd.print("Slot Left: ");
+  lcd.print(Slot);
+}
